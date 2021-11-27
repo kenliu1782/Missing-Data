@@ -1,0 +1,136 @@
+---
+title: "Final_Project_D"
+author: "Ken Liu & Zeyu Ding (Luke)"
+date: "5/10/2021"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+# 1.generate simulated data for a single school with 100 classrooms, each of which has 200 students.
+
+```{r}
+require(foreign)
+require(nlme)
+set.seed(2042001)
+student <- 200
+class <- 100
+id <- rep(1:class,rep(student,class))
+x <- runif(id,0,1)
+eta <- rnorm(class, mean=0,sd=sqrt(2))
+eta <- rep(eta, each = 200)
+epsilon <- rnorm(student*class,mean=0,sd=sqrt(2))
+y <- 0 + 1*x + eta + epsilon
+studentid <- c(1:length(id))
+classroom <- data.frame(id,x,y,eta, epsilon,studentid)
+colnames(classroom) <- c("classid","x","y","eta","epsilon","studentid")
+View(classroom)
+```
+
+# 2. Fit the model corresponding to the DGP on your simulated data
+
+```{r}
+lme1 <- lme(y~x, random=~1|classid, data = classroom)
+print(summary(lme1))
+# a. Report coefficient estimate for slope on X：0.9864.
+intervals(lme1, level = 0.95,
+          which = c("fixed"))
+# b. Does a 95% confidence band for this coefficient estimate cover the “truth” that you used to generate the data?
+# Yes.
+```
+
+# 3. Missing data I
+
+```{r}
+# a. Make a copy of the data
+class_miss_1 <- classroom
+# b. Generate Zij ∼ Bernoulli(p), with p = 0.5
+class_miss_1$Z <- rbinom(class_miss_1$classid,1,0.5)
+# c. Set Y to NA when Zij == 1.
+class_miss_1$y[class_miss_1$Z==1] <-NA
+head(class_miss_1)
+# d. Refit the model on the new data and report the coefficient estimate for slope on X：1.0248.
+lme2 <- lme(y~x, random=~1|classid, data = class_miss_1, na.action = na.omit)
+print(summary(lme2))
+intervals(lme2, level = 0.95,
+          which = c("fixed"))
+# Does a 95% confidence band for this coefficient estimate cover the “truth” that you used to generate the data?
+# Yes.
+# What is the total sample N size used in the model fit?
+# 9945
+```
+
+# 4. Missing data II
+
+```{r}
+# a. Make a copy of the data
+class_miss_2 <- classroom
+# b. Generate Zij ∼ Bernoulli(Xij ), with Xij your predictor generated previously
+class_miss_2$Z <- rbinom(class_miss_2$classid,1,class_miss_2$x)
+# c. Set Y to NA when Zij == 1.
+class_miss_2$y[class_miss_2$Z==1] <-NA
+head(class_miss_2)
+# d. Refit the model on the new data and report the coefficient estimate for slope on X: 0.9547.
+lme3 <- lme(y~x, random=~1|classid, data = class_miss_2, na.action = na.omit)
+print(summary(lme3))
+intervals(lme3, level = 0.95,
+          which = c("fixed"))
+# Does a 95% confidence band for this coefficient estimate cover the “truth” that you used to generate the data?
+# Yes.
+# What is the total sample N size used in the model fit?
+# 10002
+```
+
+# 5.Missing data 3
+
+```{r}
+# a. Make a copy of the data
+class_miss_3 <- classroom
+View(class_miss_3)
+expit <- function(x) {
+  exp(x)/(1+exp(x))
+}
+# b. Generate Zij ∼ Bernoulli(expit(Yij ))
+# c. Set Y to NA when Zij == 1.
+class_miss_3$Z <- rbinom(class_miss_3$classid,1,expit(class_miss_3$y))
+class_miss_3$y[class_miss_3$Z==1] <-NA
+head(class_miss_3)
+# d. Refit the model on the new data and report the coefficient estimate for slope on X: 0.7069
+lme4 <- lme(y~x, random=~1|classid, data = class_miss_3, na.action = na.omit)
+print(summary(lme4))
+intervals(lme4, level = 0.95,
+          which = c("fixed"))
+# Does a 95% confidence band for this coefficient estimate cover the “truth” that you used to generate the data?
+# No.
+# What is the total sample N size used in the model fit?
+# 8522
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
